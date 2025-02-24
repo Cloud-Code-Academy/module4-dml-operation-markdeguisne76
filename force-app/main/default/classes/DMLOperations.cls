@@ -30,14 +30,17 @@ public with sharing class DMLOperations {
      * @return The Id of the newly created Account.
      */
     public static Id insertNewAccount() {
-        // Create a new Account instance
+        Account firstAcc = new Account();// Create a new Account instance
 
         // Set some fields on the Account
-
+        firstAcc.BillingCity = 'Tulsa';
+        firstAcc.Name = 'Emu Factory';
+        firstAcc.NumberOfEmployees = 1000;
         // Insert the Account into the database
-
+        insert firstAcc;
+        System.debug('New Account inserted with Id: ' + firstAcc.Id);
         // Return the Id of the newly created Account
-        return null;
+        return firstAcc.Id;
     }
 
     /**
@@ -48,8 +51,11 @@ public with sharing class DMLOperations {
      */
     public static void createAccount(String name, String industry) {
         // Create a new Account and set the fields inline
-
+        Account secondAcc = new Account();
+        secondAcc.Name = name;
+        secondAcc.Industry = industry;
         // Insert the Account
+        insert secondAcc;
     }
 
     
@@ -61,14 +67,15 @@ public with sharing class DMLOperations {
      */
     public static Id insertNewContact(Id accountId) {
         // Create a new Contact instance
-
+        Contact firstCon = new Contact();
         // Set some fields on the Contact
+        firstCon.LastName = 'Doe';
         // Set the AccountId field to the given accountId
-
+        firstCon.AccountId = accountId;
         // Insert the Contact into the database
-
+        insert firstCon;
         // Return the Id of the newly created Contact
-        return null;
+        return firstCon.Id;
     }
 
     /**
@@ -81,10 +88,11 @@ public with sharing class DMLOperations {
     public static void updateContactLastName(Id contactId, String newLastName) {
         // Retrieve the Contact from the database
         // [SELECT Id FROM Contact WHERE Id = :contactId]
-
+        Contact conToUpdate = [SELECT Id FROM Contact WHERE Id = :contactId];
         // Update the Contact's last name
-
+        conToUpdate.LastName = newLastName;
         // Update the Contact in the database
+        update conToUpdate;
     }
 
     /**
@@ -97,10 +105,11 @@ public with sharing class DMLOperations {
     public static void updateOpportunityStage(Id oppId, String newStage) {
         // Retrieve the Opportunity from the database
         // [SELECT Id FROM Opportunity WHERE Id = :oppId]
-
+        Opportunity oppToUpdate = [SELECT Id FROM Opportunity WHERE Id = :oppId];
         // Update the Opportunity's stage
-
+        oppToUpdate.StageName = newStage;
         // Update the Opportunity in the database
+        update oppToUpdate;
     }
 
     /**
@@ -114,8 +123,11 @@ public with sharing class DMLOperations {
     public static void updateAccountFields(Id accountId, String newName, String newIndustry) {
         // Query the account
         // [SELECT Id FROM Account WHERE Id = :accountId]
-
+        Account accToUpdate = [SELECT Id FROM Account WHERE Id = :accountId];
+        accToUpdate.Name = newName;
+        accToUpdate.Industry = newIndustry;
         // Update the Account with the given Id with the new name and industry
+        update accToUpdate;
     }
 
 
@@ -129,10 +141,16 @@ public with sharing class DMLOperations {
      */
     public static void upsertOpportunityList(List<Opportunity> opportunities) {
         // Loop through each Opportunity in the list
+        for (Opportunity oppsToUpdateinList : opportunities) {
+            oppsToUpdateinList.StageName = 'Qualification';
+            oppsToUpdateinList.CloseDate = Date.today().addMonths(3);
+            oppsToUpdateinList.Amount = 50000;
+        }
             // Set the Opportunity's Stage to Qualification
             // Set the Opportunity's Close Date to 3 months from today
             // Set the Opportunity's Amount to 50000
         // Upsert the opportunities List so that records are either updated or created
+        upsert opportunities;
     }
 
     /**

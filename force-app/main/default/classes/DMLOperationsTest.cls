@@ -61,6 +61,7 @@ public with sharing class DMLOperationsTest {
         System.assertEquals(testAccount.Id, retrievedContact.AccountId, 'The Account IDs should match');
     }
     
+
     @IsTest
     static void testUpdateContactLastName() {
         // Create a test Contact first
