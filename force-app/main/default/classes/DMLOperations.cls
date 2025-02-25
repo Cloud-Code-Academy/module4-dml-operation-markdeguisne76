@@ -165,8 +165,32 @@ public with sharing class DMLOperations {
      */
     public static void upsertOpportunities(String accountName, List<String> oppNames) {
         // Loop through each Opportunity name
+        if (String.isBlank(accountName) || oppNames.isEmpty()) {
+            return;
+        }
+        List<Account> accList = [SELECT Id FROM Account WHERE Name = :accountName];
+        Account findAccts;
+        if (accList.isEmpty()) {
+            findAccts = new Account(Name = accountName);
+            upsert findAccts;
+        } else {
+            findAccts = accList[0];
+        }
+        Map<String, Opportunity> existingOpps = new Map<String, Opportunity>();
+        for (Opportunity oppsToLoopThru : [SELECT Id, Name FROM Opportunity WHERE AccountId = :findAccts.Id AND Name IN :oppNames]) {
+            existingOpps.put(oppsToLoopThru.Name, oppsToLoopThru);
+        }
             // Create an Opportunity with the given name
+        List<Opportunity> oppsToUpsert = new List<Opportunity>();
+        for (String oppName : oppNames) {
+            if (!existingOpps.containsKey(oppName)) {
+                oppsToUpsert.add(new Opportunity(Name = oppName, AccountId = findAccts.Id, StageName = 'Prospecting', CloseDate = Date.today().addDays(30)));
+            }
+        }
             // Add the Opportunity to the list
+        if (!oppsToUpsert.isEmpty()) {
+            upsert oppsToUpsert;
+        }
     }
     
     /**
@@ -182,11 +206,21 @@ public with sharing class DMLOperations {
 		List<Account> accounts = [SELECT Id FROM Account WHERE Name = :accountName];
 
 		// if the Account exists, update the description
-
+        if (String.isBlank(accountName)) {
+            return null;
+        }
+        List<Account> getAccts = [SELECT Id, Description FROM Account WHERE Name = :accountName LIMIT 1];
+        Account newAcct;
 		// otherwise, create a new Account and set the description
-
+        if (!getAccts.isEmpty()) {
+            newAcct = getAccts[0];
+            newAcct.Description = 'Updated Account';
+        } else {
+            newAcct = new Account(Name = accountName, Description = 'New Account');
+        }
 		// Upsert the Account
-		return null;
+        upsert newAcct;
+		return newAcct;
 	}
 
     /**
@@ -200,14 +234,36 @@ public with sharing class DMLOperations {
 	 */
 	public static void upsertAccountsWithContacts(List<Contact> contactsToUpsert) {
 		// Loop through each Contact
-
+        if (contactsToUpsert.isEmpty()) {
+            return;
+        }
 		// Extract the Account Name from Contact's LastName
-
+        Set<String> acctNames = new Set<String>();
+        for (Contact contactCheck : contactsToUpsert) {
+            if (!String.isBlank(contactCheck.LastName)) {
+                acctNames.add(contactCheck.LastName);
+            }
+        }
 		// Get the account based on the name or create one if it doesn't exist
-
+        Map<String, Account> existingAccounts = new Map<String, Account>();
+        for (Account accCheck : [SELECT Id, Name FROM Account WHERE Name IN :acctNames]) {
+            existingAccounts.put(accCheck.Name, accCheck);
+        }
+        List<Account> newAccounts = new List<Account>();
+        for (String acctName : acctNames) {
+            if (!existingAccounts.containsKey(acctName)) {
+                Account createNewAccount = upsertAccount(acctName);
+                existingAccounts.put(acctName, createNewAccount);
+            }
+        }
 		// Link the Contact to its Account using the Account Id
-
+        for (Contact contactCheck : contactsToUpsert) {
+            if (!String.isBlank(contactCheck.LastName) && existingAccounts.containsKey(contactCheck.LastName)) {
+                contactCheck.AccountId = existingAccounts.get(contactCheck.LastName).Id;
+            }
+        }
 		// Upsert the Contacts
+        upsert contactsToUpsert;
 	}
 
     /**
@@ -217,10 +273,27 @@ public with sharing class DMLOperations {
      */
     public static void insertAndDeleteLeads(List<String> leadNames) {
         // Loop through each Lead name
+        if (leadNames.isEmpty()) {
+            return;
+        }
+        // Create a list to store the Leads
+        List<Lead> leadsToCreate = new List<Lead>();
 
-        // Insert the Leads
-
+        for (String leadName : leadNames) {
+            if (!String.isBlank(leadName)) {
+                Lead newLead = new Lead(LastName = leadName, Company = 'Test Company');
+                leadsToCreate.add(newLead);
+                System.debug('Created Lead: ' + newLead);
+            }
+        }
+        // check if the new list is empty
+        if (leadsToCreate.isEmpty()) {
+            return;
+        }
+        // Insert the Leads 
+        insert leadsToCreate;
         // Delete the Leads
+        delete leadsToCreate;
     }
 
 
@@ -232,7 +305,14 @@ public with sharing class DMLOperations {
      */
     public static void createAndDeleteCases(String accountId, Integer numOfCases) {
         // Insert the cases
-
+        List<Case> caseList = new List<Case>();
+        for (Integer i = 0; i < numOfCases; i++) {
+            Case casesForAcct = new Case();
+            casesForAcct.AccountId = accountId;
+            caseList.add(casesForAcct);
+        }
+        insert caseList;
         // Delete the cases
+        delete caseList;
     }
 }
