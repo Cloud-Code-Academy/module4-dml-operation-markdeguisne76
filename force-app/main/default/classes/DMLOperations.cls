@@ -38,7 +38,6 @@ public with sharing class DMLOperations {
         firstAcc.NumberOfEmployees = 1000;
         // Insert the Account into the database
         insert firstAcc;
-        System.debug('New Account inserted with Id: ' + firstAcc.Id);
         // Return the Id of the newly created Account
         return firstAcc.Id;
     }
@@ -88,7 +87,7 @@ public with sharing class DMLOperations {
     public static void updateContactLastName(Id contactId, String newLastName) {
         // Retrieve the Contact from the database
         // [SELECT Id FROM Contact WHERE Id = :contactId]
-        Contact conToUpdate = [SELECT Id FROM Contact WHERE Id = :contactId];
+        Contact conToUpdate = [SELECT Id, LastName FROM Contact WHERE Id = :contactId];
         // Update the Contact's last name
         conToUpdate.LastName = newLastName;
         // Update the Contact in the database
@@ -252,8 +251,14 @@ public with sharing class DMLOperations {
         List<Account> newAccounts = new List<Account>();
         for (String acctName : acctNames) {
             if (!existingAccounts.containsKey(acctName)) {
-                Account createNewAccount = upsertAccount(acctName);
-                existingAccounts.put(acctName, createNewAccount);
+                Account createNewAccount = new Account(Name = acctName, Description = 'New Account');
+                newAccounts.add(createNewAccount);
+            }
+        }
+        if (!newAccounts.isEmpty()) {
+            upsert newAccounts;
+            for (Account acc : newAccounts) {
+                existingAccounts.put(acc.Name, acc);
             }
         }
 		// Link the Contact to its Account using the Account Id
@@ -283,7 +288,6 @@ public with sharing class DMLOperations {
             if (!String.isBlank(leadName)) {
                 Lead newLead = new Lead(LastName = leadName, Company = 'Test Company');
                 leadsToCreate.add(newLead);
-                System.debug('Created Lead: ' + newLead);
             }
         }
         // check if the new list is empty
